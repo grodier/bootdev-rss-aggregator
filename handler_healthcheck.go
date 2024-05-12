@@ -1,4 +1,4 @@
-package handlers
+package main
 
 import (
 	"net/http"
@@ -6,7 +6,7 @@ import (
 	"github.com/grodier/bootdev-rss-aggregator/internal/responder"
 )
 
-func Healthcheck(w http.ResponseWriter, r *http.Request) {
+func handlerHealthcheck(w http.ResponseWriter, r *http.Request) {
 
 	type healthcheckResponse struct {
 		Status string `json:"status"`

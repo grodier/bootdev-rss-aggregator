@@ -1,14 +1,20 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 
-	"github.com/grodier/bootdev-rss-aggregator/internal/handlers"
+	"github.com/grodier/bootdev-rss-aggregator/internal/database"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
+
+type apiConfig struct {
+	DB *database.Queries
+}
 
 func main() {
 	err := godotenv.Load()
@@ -17,11 +23,30 @@ func main() {
 	}
 
 	port := os.Getenv("PORT")
+	if port == "" {
+		log.Fatal("PORT is not found in the .env file")
+	}
 
+	dbURL := os.Getenv("DB_URL")
+	if dbURL == "" {
+		log.Fatal("DB_URL is not found in the .env file")
+	}
+
+	conn, err := sql.Open("postgres", dbURL)
+	if err != nil {
+		log.Fatal("Can't connect to the db:", err)
+	}
+
+	queries := database.New(conn)
+
+	apiCfg := apiConfig{
+		DB: queries,
+	}
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("GET /v1/healthcheck", handlers.Healthcheck)
-	mux.HandleFunc("GET /v1/err", handlers.Err)
+	mux.HandleFunc("GET /v1/healthcheck", handlerHealthcheck)
+	mux.HandleFunc("GET /v1/err", handlerErr)
+	mux.HandleFunc("POST /v1/users", apiCfg.handlerUsersCreate)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
