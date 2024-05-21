@@ -11,9 +11,10 @@ import (
 	"github.com/grodier/bootdev-rss-aggregator/internal/responder"
 )
 
-func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request) {
+func (cfg *apiConfig) handlerFeedCreate(w http.ResponseWriter, r *http.Request, user database.User) {
 	type parameters struct {
 		Name string `json:"name"`
+		URL  string `json:"url"`
 	}
 	decoder := json.NewDecoder(r.Body)
 
@@ -24,22 +25,24 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if params.Name == "" {
+	if params.Name == "" || params.URL == "" {
 		responder.WithError(w, http.StatusBadRequest, fmt.Sprint("Missing params in body"))
 		return
 	}
 
-	user, err := cfg.DB.CreateUser(r.Context(), database.CreateUserParams{
+	feed, err := cfg.DB.CreateFeed(r.Context(), database.CreateFeedParams{
 		ID:        uuid.New(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 		Name:      params.Name,
+		Url:       params.URL,
+		UserID:    user.ID,
 	})
 
 	if err != nil {
-		responder.WithError(w, http.StatusBadRequest, fmt.Sprint("Error creating user", err))
+		responder.WithError(w, http.StatusBadRequest, fmt.Sprint("Error creating feed", err))
 		return
 	}
 
-	responder.WithJson(w, http.StatusCreated, DatabaseUserToUser(user))
+	responder.WithJson(w, http.StatusCreated, DatabaseFeedToFeed(feed))
 }
